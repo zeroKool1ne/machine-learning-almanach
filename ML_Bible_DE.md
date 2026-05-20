@@ -702,7 +702,14 @@ print(modell.coef_)        # β₁, β₂, ... (Koeffizienten)
 
 ### 9.2 K-Nearest Neighbors (KNN)
 
-**Was es macht:** Klassifiziert (oder macht Regressionen für) einen neuen Punkt, indem es seine K nächsten Nachbarn in den Trainingsdaten betrachtet und eine Mehrheitsabstimmung durchführt (oder den Durchschnitt berechnet).
+**Was es macht:** Klassifiziert (oder macht Regression für) einen neuen Punkt, indem es seine K nächsten Nachbarn in den Trainingsdaten betrachtet und eine Mehrheitsabstimmung (Klassifikation) oder den Durchschnitt (Regression) berechnet.
+
+**Schritt für Schritt:**
+1. Alle Trainingsdaten speichern (kein echtes "Training" findet statt)
+2. Für einen neuen Punkt: Abstand zu allen Trainingspunkten berechnen
+3. Die K nächsten Nachbarn finden (kleinste Abstände)
+4. Klassifikation: Mehrheitsvoting der Nachbar-Labels → vorhergesagte Klasse
+5. Regression: Durchschnitt der Nachbar-Werte → vorhergesagter Wert
 
 **Distanzmaß (Standard: Euklidisch):**
 ```
@@ -712,32 +719,219 @@ d = √((x₁-x₁')² + (x₂-x₂')² + ... + (xₙ-xₙ')²)
 ```python
 from sklearn.neighbors import KNeighborsClassifier, KNeighborsRegressor
 
-knn = KNeighborsClassifier(n_neighbors=5)
+# Klassifikation
+knn = KNeighborsClassifier(n_neighbors=5, metric='euclidean', weights='uniform')
 knn.fit(X_train, y_train)
-knn.predict(X_test)
-knn.score(X_test, y_test)
+y_pred = knn.predict(X_test)
+knn.score(X_test, y_test)          # Accuracy
+knn.predict_proba(X_test)          # Klassenwahrscheinlichkeiten
+
+# Regression
+knn_reg = KNeighborsRegressor(n_neighbors=5)
+knn_reg.fit(X_train, y_train)
+knn_reg.score(X_test, y_test)      # R²-Score
 ```
 
-**K wählen:**
-- Kleines K → komplexe Grenze, empfindlich gegenüber Rauschen → Overfitting-Risiko
-- Großes K → glatte Grenze → Underfitting-Risiko
-- Faustregel: K ≈ √(n_samples), immer ungerade bei Binärklassifikation
+**Wichtige Hyperparameter:**
 
-**Wichtig:** KNN benötigt **Feature Scaling** — immer StandardScaler vor KNN anwenden.
+| Parameter | Bedeutung | Standard |
+|-----------|-----------|----------|
+| `n_neighbors` | Anzahl der Nachbarn K | 5 |
+| `metric` | Distanzfunktion | `'euclidean'` |
+| `weights` | `'uniform'` = alle gleich; `'distance'` = nähere Nachbarn zählen mehr | `'uniform'` |
+
+**K wählen:**
+- Kleines K → komplexe Grenze, sensitiv für Rauschen → **Overfitting**-Risiko
+- Großes K → glatte Grenze → **Underfitting**-Risiko
+- Faustregel: K ≈ √(n_samples), immer **ungerade** bei Binärklassifikation um Gleichstand zu vermeiden
+
+```python
+# Bestes K durch Ausprobieren finden
+best_k, best_score = 1, 0
+for k in range(1, 21):
+    knn = KNeighborsClassifier(n_neighbors=k)
+    knn.fit(X_train, y_train)
+    score = knn.score(X_test, y_test)
+    if score > best_score:
+        best_k, best_score = k, score
+    print(f"K={k:2d}: {score:.3f}")
+
+print(f"\nBestes K: {best_k} mit Score {best_score:.3f}")
+```
+
+**⚠️ Features immer vor KNN skalieren!**
+Ohne Skalierung dominieren Features mit großem Wertebereich (z.B. Gehalt 0–100.000) Features mit kleinem Wertebereich (z.B. Alter 0–100) komplett.
+
+```python
+from sklearn.preprocessing import StandardScaler
+
+scaler = StandardScaler()
+X_train_s = scaler.fit_transform(X_train)
+X_test_s  = scaler.transform(X_test)
+
+knn = KNeighborsClassifier(n_neighbors=5)
+knn.fit(X_train_s, y_train)
+```
+
+**Vorteile:** Einfach, keine Trainingszeit, funktioniert für Klassifikation und Regression, multi-class von Haus aus.  
+**Nachteile:** Langsam bei Vorhersagen (berechnet alle Abstände), benötigt Skalierung, schwach bei hochdimensionalen Daten.
+
+---
 
 ### 9.3 Logistische Regression
 
-Trotz des Namens ist dies ein **Klassifikations**-Algorithmus. Er sagt die Wahrscheinlichkeit vorher, dass eine Probe zu einer Klasse gehört.
+Trotz des Namens ist dies ein **Klassifikations**-Algorithmus. Er sagt die **Wahrscheinlichkeit** vorher, dass eine Probe zu einer Klasse gehört.
+
+**Wie es funktioniert:**
+Lineare Regression kann beliebige Zahlen ausgeben. Logistische Regression schleust diesen Wert durch die **Sigmoid-Funktion**, um ihn auf eine Wahrscheinlichkeit zwischen 0 und 1 zu bringen.
+
+```
+sigmoid(z) = 1 / (1 + e^(-z))    →  gibt immer einen Wert zwischen 0 und 1 zurück
+```
+
+Ist die vorhergesagte Wahrscheinlichkeit ≥ 0.5 → Klasse 1. Sonst → Klasse 0.
 
 ```python
 from sklearn.linear_model import LogisticRegression
 
-modell = LogisticRegression()
+modell = LogisticRegression(max_iter=1000)   # max_iter erhöhen falls kein Konvergenz
 modell.fit(X_train, y_train)
-modell.predict_proba(X_test)  # gibt Wahrscheinlichkeit für jede Klasse zurück
+
+modell.predict(X_test)                        # vorhergesagte Klassen-Labels
+modell.predict_proba(X_test)                  # [[prob_klasse0, prob_klasse1], ...]
+modell.score(X_test, y_test)                  # Accuracy
+
+print(modell.coef_)       # Koeffizienten (einer pro Feature und Klasse)
+print(modell.intercept_)  # Achsenabschnitt
 ```
 
-**Wann verwenden:** Binäre oder Multi-Klassen-Klassifikation, wenn Wahrscheinlichkeiten benötigt werden, als starkes Basismodell.
+**Wichtige Hyperparameter:**
+
+| Parameter | Bedeutung | Standard |
+|-----------|-----------|----------|
+| `C` | Kehrwert der Regularisierungsstärke. Kleines C = mehr Regularisierung | `1.0` |
+| `max_iter` | Maximale Iterationen des Lösers | `100` |
+| `multi_class` | Strategie für Multi-Klasse: `'auto'`, `'ovr'`, `'multinomial'` | `'auto'` |
+| `solver` | Optimierungsalgorithmus: `'lbfgs'`, `'liblinear'`, `'saga'` | `'lbfgs'` |
+
+**Multi-Klassen-Klassifikation:**
+```python
+# Funktioniert automatisch für mehr als 2 Klassen
+modell = LogisticRegression(multi_class='auto', max_iter=1000)
+modell.fit(X_train, y_train)
+# predict_proba gibt eine Wahrscheinlichkeitsspalte pro Klasse zurück
+```
+
+**Evaluation:**
+```python
+from sklearn.metrics import classification_report, confusion_matrix
+
+print(classification_report(y_test, y_pred))
+# Zeigt Precision, Recall, F1-Score für jede Klasse
+
+cm = confusion_matrix(y_test, y_pred)
+```
+
+**Vorteile:** Schnell, interpretierbare Koeffizienten, gibt Wahrscheinlichkeiten aus, gutes starkes Basismodell.  
+**Nachteile:** Setzt eine lineare Entscheidungsgrenze voraus — versagt wenn Klassen nicht linear trennbar sind.
+
+**Wann verwenden:** Binäre oder Multi-Klassen-Klassifikation, wenn Wahrscheinlichkeiten benötigt werden, als schnelles starkes Basismodell.
+
+---
+
+### 9.4 Entscheidungsbäume (Decision Trees)
+
+**Was es macht:** Lernt einen Baum aus Ja/Nein-Fragen über die Features, um Daten in Gruppen aufzuteilen und Vorhersagen zu treffen.
+
+**Wie es funktioniert:**
+1. Alle Daten starten an der Wurzel (Root)
+2. Finde das Feature + den Schwellenwert, der die Daten am besten aufteilt (Unreinheit am meisten reduziert)
+3. Rekursiv jeden Zweig weiter aufteilen bis eine Stoppbedingung erfüllt ist
+4. Jedes Blatt (Leaf) enthält eine Vorhersage (häufigste Klasse oder Durchschnittswert)
+
+**Aufteilungskriterium — Gini-Unreinheit (Standard für Klassifikation):**
+Misst wie "gemischt" ein Knoten ist. Ein reiner Knoten (nur eine Klasse) hat Gini = 0.
+```
+Gini = 1 - Σ(pᵢ²)
+```
+Wobei pᵢ der Anteil der Klasse i im Knoten ist.
+
+**Aufteilungskriterium — Entropie (Informationsgewinn):**
+```
+Entropie = -Σ(pᵢ · log₂(pᵢ))
+```
+Beide Kriterien liefern in der Praxis ähnliche Ergebnisse. Gini ist etwas schneller.
+
+```python
+from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
+
+# Klassifikation
+baum = DecisionTreeClassifier(
+    max_depth=5,           # maximale Tiefe des Baums
+    min_samples_split=2,   # Mindestanzahl Samples um einen Knoten aufzuteilen
+    min_samples_leaf=1,    # Mindestanzahl Samples in einem Blattknoten
+    criterion='gini'       # Kriterium: 'gini' oder 'entropy'
+)
+baum.fit(X_train, y_train)
+baum.predict(X_test)
+baum.score(X_test, y_test)
+
+# Regression
+baum_reg = DecisionTreeRegressor(max_depth=5)
+baum_reg.fit(X_train, y_train)
+baum_reg.score(X_test, y_test)   # R²-Score
+```
+
+**Wichtige Hyperparameter:**
+
+| Parameter | Bedeutung | Tipp |
+|-----------|-----------|------|
+| `max_depth` | Maximale Tiefe des Baums. None = unbegrenzt | Mit 3–5 starten um Overfitting zu vermeiden |
+| `min_samples_split` | Mindest-Samples um einen Knoten aufzuteilen | Höher = einfacherer Baum |
+| `min_samples_leaf` | Mindest-Samples in einem Blattknoten | Höher = einfacherer Baum |
+| `criterion` | `'gini'` oder `'entropy'` | Meist kein großer Unterschied |
+
+**Baum visualisieren:**
+```python
+from sklearn.tree import plot_tree
+import matplotlib.pyplot as plt
+
+plt.figure(figsize=(15, 8))
+plot_tree(
+    baum,
+    feature_names=X.columns,
+    class_names=['Junior', 'Senior'],
+    filled=True,          # Knoten nach Klasse einfärben
+    rounded=True,
+    fontsize=10
+)
+plt.show()
+```
+
+**Feature Importance:**
+```python
+# Wie viel jedes Feature zu den Aufteilungen beigetragen hat
+importances = pd.Series(baum.feature_importances_, index=X.columns)
+importances.sort_values().plot(kind='barh')
+plt.title('Feature Importances')
+plt.show()
+```
+
+**Overfitting bei Decision Trees:**
+Ohne Einschränkungen wächst ein Baum bis jedes Blatt rein ist (100% Train-Accuracy, miserable Test-Accuracy). `max_depth` ist die wichtigste Kontrolle.
+
+```python
+# Train- vs. Test-Score für verschiedene Tiefen vergleichen
+for tiefe in range(1, 11):
+    baum = DecisionTreeClassifier(max_depth=tiefe, random_state=42)
+    baum.fit(X_train, y_train)
+    print(f"Tiefe={tiefe:2d} | Train: {baum.score(X_train, y_train):.3f} | Test: {baum.score(X_test, y_test):.3f}")
+```
+
+**Vorteile:** Sehr gut interpretierbar (man kann den Baum zeichnen), kein Feature Scaling nötig, erfasst nicht-lineare Zusammenhänge, arbeitet mit numerischen und kategorischen Daten.  
+**Nachteile:** Sehr anfällig für Overfitting (max_depth-Tuning nötig), instabil (kleine Datenänderungen → ganz anderer Baum), generell schwächer als Ensemble-Methoden.
+
+**Wann verwenden:** Wenn Interpretierbarkeit entscheidend ist, als schnelles erstes Modell, als Baustein für Random Forests.
 
 ---
 
