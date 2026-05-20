@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ML Quiz</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #0f0f0f;
+    color: #e0e0e0;
+    min-height: 100vh;
+    padding: 16px;
+  }
+  h1 {
+    text-align: center;
+    font-size: 1.4rem;
+    margin-bottom: 6px;
+    color: #fff;
+  }
+  #progress-text {
+    text-align: center;
+    font-size: 0.85rem;
+    color: #888;
+    margin-bottom: 4px;
+  }
+  #progress-bar-wrap {
+    width: 100%;
+    background: #2a2a2a;
+    border-radius: 8px;
+    height: 6px;
+    margin-bottom: 20px;
+  }
+  #progress-bar {
+    height: 6px;
+    background: #4f8ef7;
+    border-radius: 8px;
+    transition: width 0.3s;
+  }
+  #question-card {
+    background: #1a1a1a;
+    border-radius: 14px;
+    padding: 20px;
+    margin-bottom: 16px;
+    border: 1px solid #2a2a2a;
+  }
+  #question-number {
+    font-size: 0.75rem;
+    color: #4f8ef7;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+  }
+  #question-text {
+    font-size: 1rem;
+    line-height: 1.5;
+    color: #f0f0f0;
+  }
+  .option {
+    width: 100%;
+    background: #222;
+    border: 1.5px solid #333;
+    color: #ddd;
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin-bottom: 10px;
+    font-size: 0.95rem;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+    line-height: 1.4;
+  }
+  .option:active { opacity: 0.8; }
+  .option.correct {
+    background: #1a3a1a;
+    border-color: #4caf50;
+    color: #81c784;
+  }
+  .option.wrong {
+    background: #3a1a1a;
+    border-color: #e53935;
+    color: #ef9a9a;
+  }
+  .option.disabled { cursor: default; }
+  #feedback {
+    background: #1a1a1a;
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin-bottom: 14px;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    display: none;
+    border-left: 3px solid #4f8ef7;
+    color: #ccc;
+  }
+  #next-btn {
+    width: 100%;
+    background: #4f8ef7;
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 15px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: none;
+  }
+  #next-btn:active { opacity: 0.85; }
+  #score-screen {
+    display: none;
+    text-align: center;
+    padding: 30px 16px;
+  }
+  #score-circle {
+    width: 140px;
+    height: 140px;
+    border-radius: 50%;
+    margin: 0 auto 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border: 5px solid #4f8ef7;
+    background: #1a1a1a;
+  }
+  #score-big { font-size: 2.4rem; font-weight: 700; color: #fff; }
+  #score-label { font-size: 0.8rem; color: #888; }
+  #score-msg { font-size: 1.1rem; color: #ccc; margin-bottom: 10px; }
+  #score-sub { font-size: 0.85rem; color: #666; margin-bottom: 30px; }
+  #restart-btn {
+    background: #4f8ef7;
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 15px 40px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  #start-screen {
+    text-align: center;
+    padding: 40px 16px;
+  }
+  #start-screen h2 { font-size: 1.6rem; margin-bottom: 12px; color: #fff; }
+  #start-screen p { color: #888; font-size: 0.95rem; margin-bottom: 8px; line-height: 1.6; }
+  #start-btn {
+    margin-top: 30px;
+    background: #4f8ef7;
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 16px 50px;
+    font-size: 1.05rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .tag {
+    display: inline-block;
+    background: #2a2a2a;
+    color: #4f8ef7;
+    font-size: 0.7rem;
+    padding: 3px 8px;
+    border-radius: 20px;
+    margin-bottom: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+</style>
+</head>
+<body>
+
+<div id="start-screen">
+  <h2>🧠 ML Quiz</h2>
+  <p>50 Fragen zu Machine Learning</p>
+  <p>Begriffe · Methoden · Workflow</p>
+  <p style="margin-top:16px; color:#555;">Basiert auf der ML Bibel</p>
+  <button id="start-btn" onclick="startQuiz()">Quiz starten</button>
+</div>
+
+<div id="quiz-screen" style="display:none;">
+  <h1>🧠 ML Quiz</h1>
+  <div id="progress-text">Frage 1 von 50</div>
+  <div id="progress-bar-wrap"><div id="progress-bar" style="width:2%"></div></div>
+  <div id="question-card">
+    <div id="question-number"></div>
+    <div id="question-text"></div>
+  </div>
+  <div id="options"></div>
+  <div id="feedback"></div>
+  <button id="next-btn" onclick="nextQuestion()">Weiter →</button>
+</div>
+
+<div id="score-screen">
+  <div id="score-circle">
+    <div id="score-big"></div>
+    <div id="score-label">/ 50</div>
+  </div>
+  <div id="score-msg"></div>
+  <div id="score-sub"></div>
+  <button id="restart-btn" onclick="restartQuiz()">Nochmal spielen</button>
+</div>
+
+<script>
+const allQuestions = [
+  {
+    category: "ML-Typen",
+    q: "Welche Art von Machine Learning lernt aus beschrifteten Daten (mit Labels)?",
+    options: ["Unsupervised Learning", "Supervised Learning", "Reinforcement Learning", "Semi-supervised Learning"],
+    correct: 1,
+    explanation: "Supervised Learning lernt aus beschrifteten Daten — jedes Trainingsbeispiel hat eine bekannte Antwort (Label)."
+  },
+  {
+    category: "ML-Typen",
+    q: "K-Means Clustering ist ein Beispiel für welche Art von Machine Learning?",
+    options: ["Supervised Learning", "Reinforcement Learning", "Unsupervised Learning", "Semi-supervised Learning"],
+    correct: 2,
+    explanation: "K-Means ist Unsupervised Learning — es findet Muster in unbeschrifteten Daten ohne vorgegebene Labels."
+  },
+  {
+    category: "ML-Typen",
+    q: "Ein Schach-KI, die durch Spielen lernt und für Siege belohnt wird — welcher ML-Typ ist das?",
+    options: ["Supervised Learning", "Unsupervised Learning", "Reinforcement Learning", "Self-supervised Learning"],
+    correct: 2,
+    explanation: "Reinforcement Learning — der Agent lernt durch Interaktion mit der Umgebung und Belohnungen/Strafen."
+  },
+  {
+    category: "ML-Typen",
+    q: "Wie werden Large Language Models (LLMs) typischerweise trainiert?",
+    options: ["Supervised Learning mit manuellen Labels", "Unsupervised Learning", "Self-supervised Learning", "Reinforcement Learning"],
+    correct: 2,
+    explanation: "Self-supervised Learning — das Modell generiert eigene Labels aus den Daten, z.B. durch Vorhersagen des nächsten Wortes."
+  },
+  {
+    category: "Klassifikation vs. Regression",
+    q: "Du willst vorhersagen, ob eine E-Mail Spam ist oder nicht. Das ist ein...",
+    options: ["Regressionsproblem", "Klassifikationsproblem", "Clustering-Problem", "Dimensionsreduktionsproblem"],
+    correct: 1,
+    explanation: "Klassifikation — die Ausgabe ist eine diskrete Kategorie: Spam oder kein Spam."
+  },
+  {
+    category: "Klassifikation vs. Regression",
+    q: "Du willst den Verkaufspreis eines Hauses vorhersagen. Das ist ein...",
+    options: ["Klassifikationsproblem", "Regressionsproblem", "Clustering-Problem", "Reinforcement-Problem"],
+    correct: 1,
+    explanation: "Regression — der Preis ist eine kontinuierliche Zahl, keine Kategorie."
+  },
+  {
+    category: "Klassifikation vs. Regression",
+    q: "Welche Metrik wird typischerweise für Regression verwendet?",
+    options: ["Accuracy", "F1-Score", "R²-Score", "ROC-AUC"],
+    correct: 2,
+    explanation: "R²-Score (R-Quadrat) ist die Standard-Metrik für Regression. Accuracy und F1 sind für Klassifikation."
+  },
+  {
+    category: "Klassifikation vs. Regression",
+    q: "Was bedeutet ein R²-Score von 0.85?",
+    options: ["Das Modell macht 85% Fehler", "Das Modell erklärt 85% der Varianz in den Daten", "Das Modell hat 85% Accuracy", "Das Modell braucht 85% der Daten zum Trainieren"],
+    correct: 1,
+    explanation: "R² = 0.85 bedeutet, das Modell erklärt 85% der Streuung/Varianz in der Zielgröße."
+  },
+  {
+    category: "Klassifikation vs. Regression",
+    q: "Was ist Multi-Label-Klassifikation?",
+    options: ["Klassifikation mit mehr als 2 Klassen", "Mehrere Klassen können gleichzeitig wahr sein", "Klassifikation mit mehreren Modellen", "Klassifikation mit sehr vielen Daten"],
+    correct: 1,
+    explanation: "Multi-Label: Ein Beispiel kann mehreren Klassen gleichzeitig angehören, z.B. ein Film kann Action UND Komödie sein."
+  },
+  {
+    category: "Datenstruktur",
+    q: "Wie heißt die Feature-Matrix in der sklearn-Konvention?",
+    options: ["y", "X", "Z", "W"],
+    correct: 1,
+    explanation: "X ist die Feature-Matrix mit Form (n_samples, n_features). y ist der Zielvektor."
+  },
+  {
+    category: "Datenstruktur",
+    q: "Was bedeutet 'n_samples' in der sklearn-Konvention?",
+    options: ["Anzahl der Features", "Anzahl der Spalten", "Anzahl der Zeilen / Beobachtungen", "Anzahl der Klassen"],
+    correct: 2,
+    explanation: "n_samples = Anzahl der Zeilen = Anzahl der Datenpunkte/Beobachtungen."
+  },
+  {
+    category: "Datenstruktur",
+    q: "Ein Datensatz hat 500 Personen und 12 Merkmale. Welche Form hat X?",
+    options: ["(12, 500)", "(500,)", "(500, 12)", "(12,)"],
+    correct: 2,
+    explanation: "X hat Form (n_samples, n_features) = (500, 12) — 500 Zeilen, 12 Spalten."
+  },
+  {
+    category: "Datenstruktur",
+    q: "Was ist ein 'Feature' in ML?",
+    options: ["Das was wir vorhersagen wollen", "Eine messbare Eigenschaft eines Datenpunkts", "Ein trainiertes Modell", "Eine Kategorie im Datensatz"],
+    correct: 1,
+    explanation: "Features (auch: Prädiktoren, Attribute, Variablen) sind die Eingangsvariablen des Modells — z.B. Alter, Größe, Gewicht."
+  },
+  {
+    category: "Workflow",
+    q: "Was ist der erste Schritt im ML-Workflow?",
+    options: ["Modell trainieren", "Daten bereinigen", "Problem definieren", "Daten laden"],
+    correct: 2,
+    explanation: "Immer zuerst das Problem definieren: Was will ich vorhersagen? Klassifikation oder Regression? Welche Daten habe ich?"
+  },
+  {
+    category: "Workflow",
+    q: "Wofür steht EDA?",
+    options: ["Error Detection Algorithm", "Exploratory Data Analysis", "Encoded Data Array", "Ensemble Decision Approach"],
+    correct: 1,
+    explanation: "EDA = Exploratory Data Analysis — das Erkunden und Verstehen der Daten vor dem Modelltraining."
+  },
+  {
+    category: "Workflow",
+    q: "Welcher Befehl zeigt dir die ersten 5 Zeilen eines DataFrames?",
+    options: ["df.top()", "df.first()", "df.head()", "df.show()"],
+    correct: 2,
+    explanation: "df.head() zeigt die ersten 5 Zeilen. df.tail() zeigt die letzten 5."
+  },
+  {
+    category: "Workflow",
+    q: "Welcher Befehl zeigt dir fehlende Werte pro Spalte?",
+    options: ["df.missing()", "df.isnull().sum()", "df.na().count()", "df.check_null()"],
+    correct: 1,
+    explanation: "df.isnull().sum() gibt die Anzahl fehlender Werte pro Spalte zurück."
+  },
+  {
+    category: "Workflow",
+    q: "Warum teilen wir Daten in Training- und Testset auf?",
+    options: ["Um die Trainingszeit zu verkürzen", "Um das Modell auf Daten zu testen, die es nie gesehen hat", "Weil sklearn es so verlangt", "Um mehr Speicher zu sparen"],
+    correct: 1,
+    explanation: "Der Test-Split simuliert unbekannte Daten. Ohne ihn würde man nur messen, wie gut das Modell die Trainingsdaten auswendig gelernt hat."
+  },
+  {
+    category: "Workflow",
+    q: "Was macht der Parameter random_state=42 bei train_test_split?",
+    options: ["Er wählt immer die besten 42% der Daten", "Er sorgt für einen reproduzierbaren, gleichbleibenden Split", "Er reserviert 42% für den Test-Split", "Er hat keine Bedeutung, nur Konvention"],
+    correct: 1,
+    explanation: "random_state setzt den Zufalls-Seed — der Split ist damit jedes Mal identisch und reproduzierbar."
+  },
+  {
+    category: "Workflow",
+    q: "Was bedeutet test_size=0.2 bei train_test_split?",
+    options: ["20 Datenpunkte werden für den Test verwendet", "2% der Daten gehen ins Testset", "20% der Daten gehen ins Testset", "Das Modell braucht mindestens 0.2 R²"],
+    correct: 2,
+    explanation: "test_size=0.2 → 20% Testset, 80% Trainingsset."
+  },
+  {
+    category: "Scikit-Learn API",
+    q: "Welche Methode trainiert ein sklearn-Modell?",
+    options: ["model.train()", "model.learn()", "model.fit()", "model.run()"],
+    correct: 2,
+    explanation: "model.fit(X_train, y_train) ist die universelle sklearn-Methode zum Trainieren."
+  },
+  {
+    category: "Scikit-Learn API",
+    q: "Was gibt model.predict(X_test) zurück?",
+    options: ["Den R²-Score", "Die vorhergesagten Werte für X_test", "Die Modell-Koeffizienten", "Den Trainingsverlust"],
+    correct: 1,
+    explanation: "predict() gibt die Vorhersagen des Modells für neue Daten zurück."
+  },
+  {
+    category: "Scikit-Learn API",
+    q: "Was gibt model.score(X_test, y_test) bei einem Regressionsmodell zurück?",
+    options: ["Accuracy", "F1-Score", "R²-Score", "MAE"],
+    correct: 2,
+    explanation: "Bei Regression gibt score() den R²-Score zurück. Bei Klassifikation gibt es die Accuracy."
+  },
+  {
+    category: "Scikit-Learn API",
+    q: "Was ist der Unterschied zwischen fit_transform() und transform()?",
+    options: ["Kein Unterschied", "fit_transform() lernt die Parameter UND transformiert; transform() wendet nur die gelernten Parameter an", "transform() ist schneller", "fit_transform() kann nur auf Trainingsdaten verwendet werden"],
+    correct: 1,
+    explanation: "fit_transform() lernt die Transformationsparameter (z.B. Mittelwert) UND wendet sie an. transform() wendet nur bereits gelernte Parameter an."
+  },
+  {
+    category: "Scikit-Learn API",
+    q: "Aus welchem Modul importiert man LinearRegression?",
+    options: ["sklearn.regression", "sklearn.linear", "sklearn.linear_model", "sklearn.models"],
+    correct: 2,
+    explanation: "from sklearn.linear_model import LinearRegression"
+  },
+  {
+    category: "Scikit-Learn API",
+    q: "Aus welchem Modul importiert man KNeighborsClassifier?",
+    options: ["sklearn.knn", "sklearn.neighbors", "sklearn.classification", "sklearn.cluster"],
+    correct: 1,
+    explanation: "from sklearn.neighbors import KNeighborsClassifier"
+  },
+  {
+    category: "Preprocessing",
+    q: "Warum müssen kategorische Variablen encodiert werden?",
+    options: ["Weil Pandas sie nicht lesen kann", "Weil ML-Algorithmen nur mit Zahlen arbeiten", "Um Speicher zu sparen", "Weil sie meistens falsch sind"],
+    correct: 1,
+    explanation: "ML-Algorithmen arbeiten nur mit numerischen Werten. Text wie 'Junior' oder 'Female' muss in Zahlen umgewandelt werden."
+  },
+  {
+    category: "Preprocessing",
+    q: "Was macht pd.get_dummies(df, columns=['Gender'])?",
+    options: ["Löscht die Gender-Spalte", "Erstellt eine neue Spalte Gender_0 und Gender_1", "Erstellt binäre Spalten Gender_Female und Gender_Male", "Wandelt Gender in 0 und 1 um"],
+    correct: 2,
+    explanation: "get_dummies erstellt eine neue binäre Spalte für jeden einzigartigen Wert: Gender_Female (0/1) und Gender_Male (0/1)."
+  },
+  {
+    category: "Preprocessing",
+    q: "Warum darf man nicht einfach Junior=0 und Senior=1 kodieren statt One-Hot-Encoding?",
+    options: ["Das ist zu kompliziert", "Weil das impliziert, Senior sei doppelt so viel wie Junior — mathematisch falsch", "Weil sklearn das nicht unterstützt", "Nur weil es Konvention ist"],
+    correct: 1,
+    explanation: "Label Encoding impliziert eine numerische Reihenfolge. Das Modell würde Senior=1 als 'größer' als Junior=0 interpretieren — was für nominale Kategorien falsch ist."
+  },
+  {
+    category: "Preprocessing",
+    q: "Was macht errors='coerce' bei pd.to_numeric()?",
+    options: ["Wirft einen Fehler bei nicht-konvertierbaren Werten", "Überspringt nicht-konvertierbare Werte", "Wandelt nicht-konvertierbare Werte zu NaN um", "Rundet alle Zahlen auf ganze Zahlen"],
+    correct: 2,
+    explanation: "errors='coerce' wandelt nicht-konvertierbare Werte (z.B. 'T', '-') in NaN um, statt einen Fehler zu werfen."
+  },
+  {
+    category: "Preprocessing",
+    q: "Was ist der Unterschied zwischen StandardScaler und MinMaxScaler?",
+    options: ["Es gibt keinen Unterschied", "StandardScaler skaliert auf [0,1]; MinMaxScaler auf Mittelwert=0", "StandardScaler transformiert zu Mittelwert=0, Std=1; MinMaxScaler skaliert auf [0,1]", "MinMaxScaler ist immer besser"],
+    correct: 2,
+    explanation: "StandardScaler: Mittelwert=0, Std=1 (Standardisierung). MinMaxScaler: skaliert alle Werte in den Bereich [0, 1]."
+  },
+  {
+    category: "Preprocessing",
+    q: "Wann MUSS man Feature Scaling verwenden?",
+    options: ["Immer", "Nie, sklearn macht das automatisch", "Bei distanzbasierten Algorithmen wie KNN und SVM", "Nur bei Regression"],
+    correct: 2,
+    explanation: "KNN, SVM und neuronale Netze sind empfindlich gegenüber unterschiedlichen Skalierungen. Lineare Regression ist weniger empfindlich."
+  },
+  {
+    category: "Preprocessing",
+    q: "Warum darf man den Scaler nur auf Trainingsdaten fitten?",
+    options: ["Aus Performancegründen", "Um Data Leakage zu vermeiden — Testdaten dürfen das Training nicht beeinflussen", "Weil transform() sonst nicht funktioniert", "Das ist nur eine Konvention ohne technischen Grund"],
+    correct: 1,
+    explanation: "Data Leakage: Wenn der Scaler auf allen Daten (inkl. Test) gefit wird, fließen Informationen aus dem Testset ins Training — das verfälscht die Evaluation."
+  },
+  {
+    category: "Preprocessing",
+    q: "Welche Strategie wählt man bei einer Spalte mit >10% fehlenden Werten?",
+    options: ["Mit dem Mittelwert auffüllen", "Mit 0 auffüllen", "Die Spalte löschen", "Alle betroffenen Zeilen löschen"],
+    correct: 2,
+    explanation: "Bei zu vielen fehlenden Werten ist es besser, die Spalte zu löschen. Zu viele aufgefüllte Werte verzerren das Modell."
+  },
+  {
+    category: "Preprocessing",
+    q: "Was macht df.interpolate()?",
+    options: ["Löscht alle fehlenden Werte", "Füllt fehlende Werte durch lineare Interpolation zwischen Nachbarwerten", "Ersetzt fehlende Werte durch den Mittelwert", "Kodiert kategorische Variablen"],
+    correct: 1,
+    explanation: "interpolate() schätzt fehlende Werte durch lineare Interpolation — ideal für Zeitreihen wie Wetterdaten."
+  },
+  {
+    category: "Algorithmen",
+    q: "Wie funktioniert KNN bei der Klassifikation?",
+    options: ["Es trainiert eine Entscheidungsgrenze", "Es schaut sich die K nächsten Nachbarn an und trifft eine Mehrheitsentscheidung", "Es berechnet eine Regressionslinie", "Es clustert die Daten automatisch"],
+    correct: 1,
+    explanation: "KNN findet die K ähnlichsten Trainingspunkte (nach Distanz) und klassifiziert durch Mehrheitsvoting ihrer Labels."
+  },
+  {
+    category: "Algorithmen",
+    q: "Was ist das Standard-Distanzmaß bei KNN?",
+    options: ["Manhattan-Distanz", "Kosinus-Ähnlichkeit", "Euklidische Distanz", "Hamming-Distanz"],
+    correct: 2,
+    explanation: "Standardmäßig verwendet KNN die euklidische Distanz: √((x₁-x₁')² + (x₂-x₂')² + ...)"
+  },
+  {
+    category: "Algorithmen",
+    q: "Was passiert bei einem sehr kleinen K-Wert (z.B. K=1) bei KNN?",
+    options: ["Underfitting — zu einfach", "Overfitting — zu sensitiv gegenüber Rauschen", "Perfekte Ergebnisse", "Längere Trainingszeit"],
+    correct: 1,
+    explanation: "Kleines K → komplexe, unruhige Entscheidungsgrenze → sehr sensitiv für Ausreißer → Overfitting-Risiko."
+  },
+  {
+    category: "Algorithmen",
+    q: "Was ist die Faustregel für die Wahl von K bei KNN?",
+    options: ["K = 10", "K = n/2", "K ≈ √(Anzahl Trainingsbeispiele)", "K = Anzahl der Features"],
+    correct: 2,
+    explanation: "K ≈ √n ist ein guter Startpunkt. Außerdem: immer ungerade bei binärer Klassifikation um Stimmengleichheit zu vermeiden."
+  },
+  {
+    category: "Algorithmen",
+    q: "Was beschreibt die Formel y = β₀ + β₁x₁ + β₂x₂?",
+    options: ["Logistische Regression", "KNN", "Lineare Regression", "K-Means"],
+    correct: 2,
+    explanation: "Das ist die Formel der linearen Regression. β₀ ist der Achsenabschnitt, β₁/β₂ sind die Koeffizienten der Features."
+  },
+  {
+    category: "Algorithmen",
+    q: "Was gibt model.intercept_ bei LinearRegression zurück?",
+    options: ["Den R²-Score", "Den y-Achsenabschnitt (β₀)", "Die Anzahl der Iterationen", "Den Mittelwert der Trainingsdaten"],
+    correct: 1,
+    explanation: "intercept_ = β₀, der y-Achsenabschnitt der Regressionsgeraden."
+  },
+  {
+    category: "Algorithmen",
+    q: "Logistische Regression ist trotz des Namens ein...",
+    options: ["Regressionsalgorithmus", "Klassifikationsalgorithmus", "Clustering-Algorithmus", "Dimensionsreduktionsalgorithmus"],
+    correct: 1,
+    explanation: "Logistische Regression ist ein Klassifikationsalgorithmus — er sagt Klassen-Wahrscheinlichkeiten vorher."
+  },
+  {
+    category: "Evaluation",
+    q: "Was bedeutet Overfitting?",
+    options: ["Das Modell hat zu wenige Features", "Das Modell lernt die Trainingsdaten auswendig, generalisiert aber schlecht", "Das Modell ist zu einfach", "Das Modell braucht zu viel Speicher"],
+    correct: 1,
+    explanation: "Overfitting: Hoher Train-Score, niedriger Test-Score. Das Modell hat die Trainingsdaten 'auswendig gelernt' statt echte Muster zu finden."
+  },
+  {
+    category: "Evaluation",
+    q: "Woran erkennt man Overfitting?",
+    options: ["Train-Score ≈ Test-Score, beide niedrig", "Train-Score viel höher als Test-Score", "Test-Score viel höher als Train-Score", "Beide Scores sind 1.0"],
+    correct: 1,
+    explanation: "Großer Unterschied Train >> Test → Overfitting. Das Modell generalisiert nicht auf neue Daten."
+  },
+  {
+    category: "Evaluation",
+    q: "Was ist Underfitting?",
+    options: ["Hoher Train-Score, niedriger Test-Score", "Niedriger Train-Score UND niedriger Test-Score", "Das Modell hat zu viele Features", "Das Modell trainiert zu schnell"],
+    correct: 1,
+    explanation: "Underfitting: Beide Scores niedrig → Modell ist zu einfach und erfasst nicht genug Muster in den Daten."
+  },
+  {
+    category: "Evaluation",
+    q: "Was ist Accuracy?",
+    options: ["Anteil der falsch vorhergesagten Werte", "Anteil der korrekt vorhergesagten Werte", "R²-Score für Klassifikation", "Durchschnittlicher Fehler"],
+    correct: 1,
+    explanation: "Accuracy = korrekte Vorhersagen / alle Vorhersagen. Bei 85 von 100 richtigen → Accuracy = 0.85 = 85%."
+  },
+  {
+    category: "Evaluation",
+    q: "Warum kann Accuracy bei unausgeglichenen Datensätzen irreführend sein?",
+    options: ["Weil sie zu komplex zu berechnen ist", "Weil ein Modell, das immer die häufigste Klasse vorhersagt, hohe Accuracy erreicht ohne nützlich zu sein", "Weil sklearn Accuracy falsch berechnet", "Sie ist nie irreführend"],
+    correct: 1,
+    explanation: "Beispiel: 99% der Daten sind 'kein Betrug'. Ein Modell, das immer 'kein Betrug' sagt, hat 99% Accuracy — ist aber nutzlos für die eigentliche Aufgabe."
+  },
+  {
+    category: "Evaluation",
+    q: "Was ist der Unterschied zwischen Precision und Recall?",
+    options: ["Kein Unterschied", "Precision: von vorhergesagten Positiven wie viele stimmen; Recall: von echten Positiven wie viele wurden erkannt", "Precision ist für Regression, Recall für Klassifikation", "Recall ist immer höher als Precision"],
+    correct: 1,
+    explanation: "Precision: von allen als positiv erkannten, wie viele sind wirklich positiv. Recall: von allen echten Positiven, wie viele wurden erkannt."
+  },
+  {
+    category: "Evaluation",
+    q: "Was ist Kreuzvalidierung (Cross-Validation)?",
+    options: ["Ein Algorithmus zum Testen mehrerer Modelle gleichzeitig", "Das Aufteilen der Daten in K Teile und K-maliges Trainieren/Testen für einen zuverlässigeren Score", "Eine Art Regularisierung", "Eine Methode zur Feature-Auswahl"],
+    correct: 1,
+    explanation: "Bei k-facher Kreuzvalidierung wird der Datensatz K-mal unterschiedlich aufgeteilt. Der Score wird über alle K Splits gemittelt — zuverlässiger als ein einzelner Split."
+  },
+  {
+    category: "SQL & Daten",
+    q: "Welche Funktion lädt eine SQL-Tabelle in einen Pandas DataFrame?",
+    options: ["pd.read_sql()", "pd.from_sql()", "pd.load_sql()", "pd.import_sql()"],
+    correct: 0,
+    explanation: "pd.read_sql('SELECT * FROM tabelle', engine) lädt SQL-Daten direkt in einen DataFrame."
+  },
+  {
+    category: "SQL & Daten",
+    q: "Was ist sqlalchemy in diesem Kontext?",
+    options: ["Eine Alternative zu Pandas", "Eine Bibliothek zum Erstellen der Datenbankverbindung (Engine)", "Ein SQL-Ersatz in Python", "Ein Visualisierungstool"],
+    correct: 1,
+    explanation: "sqlalchemy erstellt die Verbindung zur Datenbank via create_engine(). Pandas nutzt diese Verbindung dann mit read_sql()."
+  },
+  {
+    category: "SQL & Daten",
+    q: "Was macht der SQL-Befehl CAST(spalte AS SIGNED)?",
+    options: ["Löscht die Spalte", "Wandelt einen Text-Wert in eine Ganzzahl um", "Erstellt eine Kopie der Spalte", "Sortiert die Spalte"],
+    correct: 1,
+    explanation: "CAST() konvertiert den Datentyp. AS SIGNED wandelt in eine ganze Zahl (Integer) um — nötig wenn Zahlen als VARCHAR gespeichert sind."
+  }
+];
+
+let questions = [];
+let currentIndex = 0;
+let score = 0;
+let answered = false;
+
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function startQuiz() {
+  questions = shuffle([...allQuestions]);
+  currentIndex = 0;
+  score = 0;
+  document.getElementById('start-screen').style.display = 'none';
+  document.getElementById('score-screen').style.display = 'none';
+  document.getElementById('quiz-screen').style.display = 'block';
+  loadQuestion();
+}
+
+function loadQuestion() {
+  answered = false;
+  const q = questions[currentIndex];
+  const total = questions.length;
+
+  document.getElementById('progress-text').textContent = `Frage ${currentIndex + 1} von ${total}`;
+  document.getElementById('progress-bar').style.width = `${((currentIndex + 1) / total) * 100}%`;
+  document.getElementById('question-number').textContent = `${currentIndex + 1} / ${total}`;
+  document.getElementById('question-text').textContent = q.q;
+  document.getElementById('feedback').style.display = 'none';
+  document.getElementById('next-btn').style.display = 'none';
+
+  const optionsDiv = document.getElementById('options');
+  optionsDiv.innerHTML = '';
+
+  // Shuffle options while tracking correct answer
+  const indices = [0, 1, 2, 3];
+  const shuffled = shuffle([...indices]);
+  const newCorrect = shuffled.indexOf(q.correct);
+
+  shuffled.forEach((origIdx, displayIdx) => {
+    const btn = document.createElement('button');
+    btn.className = 'option';
+    btn.textContent = q.options[origIdx];
+    btn.dataset.isCorrect = (origIdx === q.correct) ? 'true' : 'false';
+    btn.onclick = () => selectAnswer(btn, origIdx === q.correct);
+    optionsDiv.appendChild(btn);
+  });
+
+  // Add category tag
+  const card = document.getElementById('question-card');
+  let tag = card.querySelector('.tag');
+  if (!tag) {
+    tag = document.createElement('div');
+    tag.className = 'tag';
+    card.insertBefore(tag, card.firstChild);
+  }
+  tag.textContent = q.category;
+}
+
+function selectAnswer(selectedBtn, isCorrect) {
+  if (answered) return;
+  answered = true;
+
+  const allBtns = document.querySelectorAll('.option');
+  allBtns.forEach(btn => {
+    btn.classList.add('disabled');
+    btn.onclick = null;
+    if (btn.dataset.isCorrect === 'true') {
+      btn.classList.add('correct');
+    }
+  });
+
+  if (isCorrect) {
+    score++;
+    selectedBtn.classList.add('correct');
+  } else {
+    selectedBtn.classList.add('wrong');
+  }
+
+  const feedback = document.getElementById('feedback');
+  feedback.innerHTML = (isCorrect ? '✓ Richtig! ' : '✗ Falsch. ') + questions[currentIndex].explanation;
+  feedback.style.display = 'block';
+  feedback.style.borderLeftColor = isCorrect ? '#4caf50' : '#e53935';
+
+  document.getElementById('next-btn').style.display = 'block';
+  document.getElementById('next-btn').textContent = (currentIndex + 1 < questions.length) ? 'Weiter →' : 'Ergebnis sehen';
+}
+
+function nextQuestion() {
+  currentIndex++;
+  if (currentIndex < questions.length) {
+    loadQuestion();
+  } else {
+    showScore();
+  }
+}
+
+function showScore() {
+  document.getElementById('quiz-screen').style.display = 'none';
+  document.getElementById('score-screen').style.display = 'block';
+
+  const pct = Math.round((score / questions.length) * 100);
+  document.getElementById('score-big').textContent = score;
+  document.getElementById('score-label').textContent = `/ ${questions.length}`;
+
+  let msg, sub;
+  if (pct >= 90) { msg = '🏆 Ausgezeichnet!'; sub = 'Du hast das Thema sehr gut drauf.'; }
+  else if (pct >= 75) { msg = '💪 Sehr gut!'; sub = 'Nur noch ein paar Lücken zu schließen.'; }
+  else if (pct >= 60) { msg = '👍 Gut gemacht!'; sub = 'Schau dir die falschen Antworten nochmal an.'; }
+  else if (pct >= 40) { msg = '📖 Weiter lernen!'; sub = 'Noch mal durch die ML Bibel gehen.'; }
+  else { msg = '🔄 Nochmal versuchen!'; sub = 'Keine Sorge — beim nächsten Mal wird es besser.'; }
+
+  document.getElementById('score-msg').textContent = msg;
+  document.getElementById('score-sub').textContent = `${pct}% korrekt — ${sub}`;
+}
+
+function restartQuiz() {
+  startQuiz();
+}
+</script>
+</body>
+</html>
