@@ -1,8 +1,8 @@
 
 """
 HOW TO USE IN NOTEBOOK:
-import sys
-sys.path.append('/Users/dv/Desktop/machine-learning-bible/')
+import sys, os
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'scripts'))
 from ml_utils import clean_data, quick_eda, profile_data
 """
 
