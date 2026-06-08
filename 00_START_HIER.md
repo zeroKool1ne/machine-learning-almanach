@@ -55,6 +55,24 @@ Für jedes Thema gibt es **3 Dateien**:
 - AdaBoost, Gradient Boosting, XGBoost
 - Wann welche Methode?
 
+### Schritt 7: Evaluation & Imbalanced Data
+📁 `07_evaluation_metriken/` & `08_unausgeglichene_daten/`
+
+### Schritt 8: Tuning & Unsupervised
+📁 `09_hyperparameter_tuning/`, `10_unsupervised_learning/`, `11_dimension_reduction/`
+
+### Schritt 9: Empfehlungssysteme
+📁 `12_recommender_systeme/`
+- Content-Based Filtering (Cosine Similarity)
+- Collaborative Filtering (SVD, User-Item-Matrix)
+- Surprise Library
+
+### Schritt 10: Reinforcement Learning
+📁 `13_reinforcement_learning/`
+- Agent, Environment, State, Action, Reward
+- Q-Learning, ε-Greedy, Bellman-Gleichung
+- Wo steckt RL in der Praxis (RLHF, Spiele, Robotik)
+
 ---
 
 ## Wichtige deutsche Fachbegriffe
